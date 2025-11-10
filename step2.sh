@@ -1,46 +1,56 @@
 #!/bin/ash
 
-apk add curl socat nmap net-tools build-base setxkbmap sudo xrandr bash zsh dbus dbus-x11 sudo setup-xorg-base xfce4 xfce4-terminal lightdm dbus-x11
-apk add open-vm-tools open-vm-tools-guestinfo open-vm-tools-deploypkg open-vm-tools-gtk
-apk add lightdm-gtk-greeter i3wm i3status libxcb-dev i3lock xf86-video-vmware dmenu
-apk add mesa-gl glib feh firefox-esr accountsservice openvpn
-apk add docker docker-compose
+# get current username or fallback to "user"
+USER_NAME=${USER:-user}
 
-# add user
-adduser ibuetler
-mkdir -p /home/ibuetler/wallpaper
-mkdir -p /home/ibuetler/.config/i3
+# basic packages and tools
+apk add curl socat nmap net-tools build-base setxkbmap sudo xrandr bash zsh dbus dbus-x11
 
-# user setup ibuetler
-cp ./ibuetler/wallpaper/compass.jpg /home/ibuetler/wallpaper/compass.jpg
-cp ./ibuetler/.config/i3/config /home/ibuetler/.config/i3/config
-cp ./ibuetler/.profile /home/ibuetler/.profile
-mkdir -p /home/ibuetler/.scripts
-cp ./ibuetler/login-script.sh /home/ibuetler/.scripts/login-script.sh
-chown -R ibuetler:ibuetler /home/ibuetler
+# Xorg and display manager
+apk add setup-xorg-base lightdm lightdm-gtk-greeter
 
-# add ibuetler to sudoers
+# i3 window manager and bar components
+apk add i3wm i3status i3lock dmenu i3bar libxcb-dev feh
+
+# graphics and network utilities
+apk add mesa-gl glib firefox-esr accountsservice openvpn
+
+# create user if doesn't exist
+if ! id "$USER_NAME" >/dev/null 2>&1; then
+    adduser -D "$USER_NAME"
+fi
+
+# create user directories
+mkdir -p /home/$USER_NAME/wallpaper
+mkdir -p /home/$USER_NAME/.config/i3
+mkdir -p /home/$USER_NAME/.scripts
+
+# copy configs
+cp ./ibuetler/wallpaper/compass.jpg /home/$USER_NAME/wallpaper/compass.jpg
+cp ./ibuetler/.config/i3/config /home/$USER_NAME/.config/i3/config
+cp ./ibuetler/.profile /home/$USER_NAME/.profile
+cp ./ibuetler/login-script.sh /home/$USER_NAME/.scripts/login-script.sh
+chown -R $USER_NAME:$USER_NAME /home/$USER_NAME
+
+# add to sudoers
 cat ./ibuetler/sudoers >> /etc/sudoers
 
-# greeter background
-echo "background=/home/ibuetler/wallpaper/compass.jpg" >> /etc/lightdm/lightdm-gtk-greeter.conf
+# lightdm background
+echo "background=/home/$USER_NAME/wallpaper/compass.jpg" >> /etc/lightdm/lightdm-gtk-greeter.conf
 
-# set background image in accountsservice
-cp ./ibuetler/ibuetler /var/lib/AccountsService/users
-chown root:root /var/lib/AccountsService/users/ibuetler
+# accountsservice setup
+cp ./ibuetler/ibuetler /var/lib/AccountsService/users/$USER_NAME
+chown root:root /var/lib/AccountsService/users/$USER_NAME
 
-# add user to docker
-addgroup ibuetler docker
+# docker group
+addgroup $USER_NAME docker
 
-# enable copy paste in vmware
+# VMware tools (if needed)
+apk add open-vm-tools open-vm-tools-guestinfo open-vm-tools-deploypkg open-vm-tools-gtk xf86-video-vmware
 chmod g+s /usr/bin/vmware-user-suid-wrapper
 
-# give ibuetler write access to /opt dir
-chown ibuetler:ibuetler /opt
-
-# mkdir /opt/docker
+# permissions for /opt
+chown $USER_NAME:$USER_NAME /opt
 mkdir -p /opt/docker
 cp ./docker/* /opt/docker/
-chown ibuetler:ibuetler /opt/docker
-
-
+chown $USER_NAME:$USER_NAME /opt/docker

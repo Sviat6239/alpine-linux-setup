@@ -1,8 +1,36 @@
-[org.freedesktop.DisplayManager.AccountsService]
-BackgroundFile='/home/ibuetler/wallpaper/compass.jpg'
+#!/bin/ash
 
-[User]
-Session=xfce
-XSession=i3
-Icon=/home/ibuetler/.face
-SystemAccount=false
+# use current user or fallback
+USER_NAME=${USER:-user}
+
+# create necessary directories
+mkdir -p /home/$USER_NAME/wallpaper
+mkdir -p /home/$USER_NAME/.config/i3
+mkdir -p /home/$USER_NAME/.scripts
+
+# copy wallpaper
+cp ./ibuetler/wallpaper/compass.jpg /home/$USER_NAME/wallpaper/compass.jpg
+
+# copy i3 config
+cp ./ibuetler/.config/i3/config /home/$USER_NAME/.config/i3/config
+
+# copy profile
+cp ./ibuetler/.profile /home/$USER_NAME/.profile
+
+# copy login script
+cp ./ibuetler/login-script.sh /home/$USER_NAME/.scripts/login-script.sh
+
+# set ownership
+chown -R $USER_NAME:$USER_NAME /home/$USER_NAME
+
+# sudoers
+cat ./ibuetler/sudoers >> /etc/sudoers
+
+# AccountsService
+cp ./ibuetler/ibuetler /var/lib/AccountsService/users/$USER_NAME
+# replace paths inside the file
+sed -i "s|/home/ibuetler|/home/$USER_NAME|g" /var/lib/AccountsService/users/$USER_NAME
+chown root:root /var/lib/AccountsService/users/$USER_NAME
+
+# lightdm greeter background
+echo "background=/home/$USER_NAME/wallpaper/compass.jpg" >> /etc/lightdm/lightdm-gtk-greeter.conf
